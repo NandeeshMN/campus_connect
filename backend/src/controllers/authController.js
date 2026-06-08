@@ -17,19 +17,19 @@ const generateTokens = (user) => {
 
   return { accessToken, refreshToken };
 };
-
 const register = async (req, res, next) => {
   try {
     const { full_name, username, email, password, department, academic_year, profile_image } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
 
-    if (!email.includes('@')) {
+    if (!normalizedEmail.includes('@')) {
       return res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
     }
 
     // Check duplicate email or username
     const existingUser = await db.query(
       'SELECT id FROM users WHERE email = $1 OR username = $2',
-      [email, username]
+      [normalizedEmail, username.trim()]
     );
     if (existingUser.rows.length > 0) {
       return res.status(400).json({ success: false, error: 'User with this email or username already exists.' });
@@ -45,8 +45,8 @@ const register = async (req, res, next) => {
     `;
     const values = [
       full_name,
-      username,
-      email,
+      username.trim(),
+      normalizedEmail,
       password_hash,
       'student',
       department || 'Undeclared',
@@ -81,8 +81,9 @@ const register = async (req, res, next) => {
 const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
 
-    const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const result = await db.query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
     const user = result.rows[0];
 
     if (!user) {
