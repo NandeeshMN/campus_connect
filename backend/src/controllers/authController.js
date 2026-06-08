@@ -28,7 +28,7 @@ const register = async (req, res, next) => {
 
     // Check duplicate email or username
     const existingUser = await db.query(
-      'SELECT id FROM users WHERE email = $1 OR username = $2',
+      'SELECT id FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2)',
       [normalizedEmail, username.trim()]
     );
     if (existingUser.rows.length > 0) {
@@ -83,7 +83,7 @@ const login = async (req, res, next) => {
     const { email, password } = req.body;
     const normalizedEmail = email.toLowerCase().trim();
 
-    const result = await db.query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
+    const result = await db.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [normalizedEmail]);
     const user = result.rows[0];
 
     if (!user) {
