@@ -14,10 +14,10 @@ export const AuthProvider = ({ children }) => {
       // In production, invoke api.get('/users/me')
       // For boilerplate setup, let's mock it
       setUser({
-        id: 'mock-uuid-john-doe',
-        full_name: 'John Doe',
-        username: 'johndoe24',
-        email: 'john.doe@university.edu',
+        id: 'mock-uuid-nandi',
+        full_name: 'Nandeesh M N',
+        username: 'nandeesh',
+        email: 'nandi@gmail.com',
         role: 'student',
         department: 'Computer Science',
         academic_year: 'Sophomore',
@@ -32,22 +32,23 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     setIsLoading(true);
-    try {
-      // Setup simulator for quick prototype demonstration
-      if (email === 'john.doe@university.edu' && password === 'SecurePassword123') {
-        const mockAccessToken = 'mock-jwt-token-string';
-        setToken(mockAccessToken);
-        toast.success('Successfully logged in!');
-        return { success: true };
-      } else {
-        throw new Error('Invalid email or password credentials. (Hint: use john.doe@university.edu / SecurePassword123)');
-      }
-    } catch (error) {
-      toast.error(error.message);
-      return { success: false, error: error.message };
-    } finally {
+
+    // Trim whitespace to prevent invisible character issues
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    const normalizedPassword = (password || '').trim();
+
+    // Mock credentials check (MVP phase — replace with real API call later)
+    if (normalizedEmail === 'nandi@gmail.com' && normalizedPassword === 'nandi123') {
+      const mockAccessToken = 'mock-jwt-token-string';
+      setToken(mockAccessToken);
       setIsLoading(false);
+      toast.success('Welcome back, Nandeesh!');
+      return { success: true };
     }
+
+    setIsLoading(false);
+    toast.error('Invalid email or password. Try: nandi@gmail.com / nandi123');
+    return { success: false, error: 'Invalid credentials' };
   };
 
   const register = async (formData) => {

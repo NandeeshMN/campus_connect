@@ -24,9 +24,9 @@ const register = async (req, res, next) => {
   try {
     const { full_name, username, email, password, department, academic_year, profile_picture_url } = req.body;
 
-    // Email validation
-    if (!email.endsWith('.edu') && !email.includes('.edu.')) {
-      return res.status(400).json({ success: false, error: 'Only authorized university email (.edu) accounts are permitted.' });
+    // Email validation (Removed restriction for current MVP phase)
+    if (!email.includes('@')) {
+      return res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
     }
 
     const emailExists = users.some(u => u.email === email);
@@ -85,14 +85,14 @@ const login = async (req, res, next) => {
     let user = users.find(u => u.email === email);
 
     // If memory is empty (first boot), create mock users for demonstration
-    if (!user && email === 'john.doe@university.edu') {
+    if (!user && email === 'nandi@gmail.com') {
       const salt = await bcrypt.genSalt(10);
-      const hash = await bcrypt.hash('SecurePassword123', salt);
+      const hash = await bcrypt.hash('nandi123', salt);
       user = {
-        id: 'mock-uuid-john-doe',
-        full_name: 'John Doe',
-        username: 'johndoe24',
-        email: 'john.doe@university.edu',
+        id: 'mock-uuid-nandi',
+        full_name: 'Nandeesh M N',
+        username: 'nandeesh',
+        email: 'nandi@gmail.com',
         password_hash: hash,
         role: 'student',
         department: 'Computer Science',

@@ -24,8 +24,8 @@ const LoginPage = () => {
 
   const onSubmit = async (data) => {
     const res = await login(data.email, data.password);
-    if (res.success) {
-      navigate('/');
+    if (res?.success) {
+      navigate('/home');
     }
   };
 
@@ -58,22 +58,22 @@ const LoginPage = () => {
               Welcome back
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              Please enter your university credentials
+              Please enter your credentials to continue
             </p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* University Email Input */}
+            {/* Email Input */}
             <Input
-              label="University Email"
-              placeholder="name@university.edu"
+              label="Email Address"
+              placeholder="name@domain.com"
               icon={Mail}
               error={errors.email?.message}
               {...register('email', {
-                required: 'University Email is required',
+                required: 'Email Address is required',
                 pattern: {
-                  value: /^[^\s@]+@[^\s@]+\.edu(\.[^\s@]+)?$/,
-                  message: 'Must be a valid university email (.edu)'
+                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  message: 'Must be a valid email address'
                 }
               })}
             />

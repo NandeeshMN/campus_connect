@@ -1,4 +1,5 @@
 import React from 'react';
+import { Github, Linkedin, Globe } from 'lucide-react';
 import Logo from './Logo';
 
 const Footer = () => {
@@ -25,9 +26,49 @@ const Footer = () => {
 
         </div>
 
-        <div className="mt-8 border-t border-slate-200/50 dark:border-slate-800/80 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <p>© {currentYear} CampusConnect. All rights reserved.</p>
-          <p>Handcrafted for future leaders.</p>
+        <div className="mt-8 border-t border-slate-200/50 dark:border-slate-800/80 pt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-400 text-center">
+          <div className="md:text-left">
+            <p>Your Campus. Your Community. Your Network.</p>
+          </div>
+          <div className="md:text-center">
+            <p>© {currentYear} CampusConnect. All rights reserved.</p>
+          </div>
+          <div className="flex justify-center md:justify-end">
+            <div className="flex flex-col items-center gap-1.5">
+              <span className="text-slate-500 dark:text-slate-400">
+                Designed And Developed By
+              </span>
+              <span className="text-slate-600 dark:text-slate-300 font-semibold">
+                Nandeesh M N
+              </span>
+              <div className="flex items-center gap-4 mt-0.5">
+                <a 
+                  href="https://github.com/NandeeshMN/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                >
+                  <Github size={16} />
+                </a>
+                <a 
+                  href="https://www.linkedin.com/in/nandeeshmn/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  <Linkedin size={16} />
+                </a>
+                <a 
+                  href="https://nandeeshmn.vercel.app/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                >
+                  <Globe size={16} />
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

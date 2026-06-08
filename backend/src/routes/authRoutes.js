@@ -7,7 +7,7 @@ const router = express.Router();
 const registerSchema = {
   full_name: { required: true, type: 'string', minLength: 2 },
   username: { required: true, type: 'string', minLength: 3 },
-  email: { required: true, type: 'string', pattern: /^[^\s@]+@[^\s@]+\.edu(\.[^\s@]+)?$/ },
+  email: { required: true, type: 'string', pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
   password: { required: true, type: 'string', minLength: 6 },
 };
 

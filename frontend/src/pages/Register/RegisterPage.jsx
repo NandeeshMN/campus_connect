@@ -80,7 +80,7 @@ const RegisterPage = () => {
       profile_picture_url: previewUrl || ''
     });
     if (res.success) {
-      navigate('/');
+      navigate('/home');
     }
   };
 
@@ -216,15 +216,15 @@ const RegisterPage = () => {
 
                   <div className="space-y-5">
                     <Input
-                      label="College Email (.edu)"
-                      placeholder="john.doe@university.edu"
+                      label="Email Address"
+                      placeholder="name@domain.com"
                       icon={Mail}
                       error={errors.email?.message}
                       {...register('email', {
-                        required: 'University Email is required',
+                        required: 'Email Address is required',
                         pattern: {
-                          value: /^[^\s@]+@[^\s@]+\.edu(\.[^\s@]+)?$/,
-                          message: 'Must be a valid university email (.edu)'
+                          value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                          message: 'Must be a valid email address'
                         }
                       })}
                     />
