@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import authService from '../services/authService';
 
 const AuthContext = createContext();
 
@@ -9,74 +10,63 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // If we have a token, simulate fetching current session user info
-    if (token) {
-      // In production, invoke api.get('/users/me')
-      // For boilerplate setup, let's mock it
-      setUser({
-        id: 'mock-uuid-nandi',
-        full_name: 'Nandeesh M N',
-        username: 'nandeesh',
-        email: 'nandi@gmail.com',
-        role: 'student',
-        department: 'Computer Science',
-        academic_year: 'Sophomore',
-      });
-      localStorage.setItem('accessToken', token);
-    } else {
-      localStorage.removeItem('accessToken');
-      setUser(null);
-    }
-    setIsLoading(false);
+    const fetchUser = async () => {
+      if (token) {
+        try {
+          const data = await authService.getMe();
+          setUser(data.user);
+        } catch (error) {
+          console.error('Failed to fetch user', error);
+          setToken(null);
+          setUser(null);
+          localStorage.removeItem('accessToken');
+        }
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    };
+
+    fetchUser();
   }, [token]);
 
   const login = async (email, password) => {
     setIsLoading(true);
-
-    // Trim whitespace to prevent invisible character issues
-    const normalizedEmail = (email || '').trim().toLowerCase();
-    const normalizedPassword = (password || '').trim();
-
-    // Mock credentials check (MVP phase — replace with real API call later)
-    if (normalizedEmail === 'nandi@gmail.com' && normalizedPassword === 'nandi123') {
-      const mockAccessToken = 'mock-jwt-token-string';
-      setToken(mockAccessToken);
-      setIsLoading(false);
-      toast.success('Welcome back, Nandeesh!');
+    try {
+      const data = await authService.loginUser({ email, password });
+      setToken(data.accessToken);
+      localStorage.setItem('accessToken', data.accessToken);
+      setUser(data.user);
+      toast.success('Welcome back!');
       return { success: true };
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Invalid credentials');
+      return { success: false, error: error.response?.data?.error || 'Invalid credentials' };
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
-    toast.error('Invalid email or password. Try: nandi@gmail.com / nandi123');
-    return { success: false, error: 'Invalid credentials' };
   };
 
   const register = async (formData) => {
     setIsLoading(true);
     try {
-      // Simulate registering
-      const mockAccessToken = 'mock-jwt-token-registered';
-      setToken(mockAccessToken);
-      setUser({
-        id: `mock-uuid-${Date.now()}`,
-        full_name: formData.full_name,
-        username: formData.username,
-        email: formData.email,
-        role: 'student',
-        department: formData.department,
-        academic_year: formData.academic_year,
-      });
+      const data = await authService.registerUser(formData);
       toast.success('Registration complete! Welcome to CampusConnect.');
       return { success: true };
     } catch (error) {
-      toast.error(error.message);
-      return { success: false, error: error.message };
+      toast.error(error.response?.data?.error || 'Registration failed');
+      return { success: false, error: error.response?.data?.error || 'Registration failed' };
     } finally {
       setIsLoading(false);
     }
   };
 
   const logout = async () => {
+    try {
+      await authService.logoutUser();
+    } catch (e) {
+      // ignore
+    }
     setToken(null);
     setUser(null);
     localStorage.removeItem('accessToken');

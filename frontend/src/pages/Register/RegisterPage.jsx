@@ -75,12 +75,13 @@ const RegisterPage = () => {
       full_name: data.full_name,
       username: data.username,
       email: data.email,
+      password: data.password,
       department: data.department,
       academic_year: data.academic_year,
-      profile_picture_url: previewUrl || ''
+      profile_image: previewUrl || ''
     });
     if (res.success) {
-      navigate('/home');
+      navigate('/login');
     }
   };
 

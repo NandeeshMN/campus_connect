@@ -1,8 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-
-// Mock in-memory store for prototype/demo
-const users = [];
+const db = require('../config/db');
 
 const generateTokens = (user) => {
   const accessToken = jwt.sign(
@@ -22,56 +20,58 @@ const generateTokens = (user) => {
 
 const register = async (req, res, next) => {
   try {
-    const { full_name, username, email, password, department, academic_year, profile_picture_url } = req.body;
+    const { full_name, username, email, password, department, academic_year, profile_image } = req.body;
 
-    // Email validation (Removed restriction for current MVP phase)
     if (!email.includes('@')) {
       return res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
     }
 
-    const emailExists = users.some(u => u.email === email);
-    const usernameExists = users.some(u => u.username === username);
-
-    if (emailExists || usernameExists) {
+    // Check duplicate email or username
+    const existingUser = await db.query(
+      'SELECT id FROM users WHERE email = $1 OR username = $2',
+      [email, username]
+    );
+    if (existingUser.rows.length > 0) {
       return res.status(400).json({ success: false, error: 'User with this email or username already exists.' });
     }
 
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
-    const newUser = {
-      id: `mock-uuid-${Date.now()}`,
+    const insertQuery = `
+      INSERT INTO users (full_name, username, email, password_hash, role, department, academic_year, profile_image, is_verified)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING id, full_name, username, email, role, department, academic_year, profile_image, is_verified, created_at
+    `;
+    const values = [
       full_name,
       username,
       email,
       password_hash,
-      role: 'student',
-      department: department || 'Undeclared',
-      academic_year: academic_year || 'Freshman',
-      profile_picture_url: profile_picture_url || '',
-      is_verified: false,
-      created_at: new Date().toISOString(),
-    };
+      'student',
+      department || 'Undeclared',
+      academic_year || 'Freshman',
+      profile_image || '',
+      false,
+    ];
 
-    users.push(newUser);
+    const result = await db.query(insertQuery, values);
+    const newUser = result.rows[0];
 
     const { accessToken, refreshToken } = generateTokens(newUser);
-    newUser.refresh_token = refreshToken;
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-
-    const { password_hash: _, refresh_token: __, ...userResponse } = newUser;
 
     return res.status(201).json({
       success: true,
       message: 'User registered successfully',
       accessToken,
-      user: userResponse,
+      user: newUser,
     });
   } catch (error) {
     next(error);
@@ -82,26 +82,8 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    let user = users.find(u => u.email === email);
-
-    // If memory is empty (first boot), create mock users for demonstration
-    if (!user && email === 'nandi@gmail.com') {
-      const salt = await bcrypt.genSalt(10);
-      const hash = await bcrypt.hash('nandi123', salt);
-      user = {
-        id: 'mock-uuid-nandi',
-        full_name: 'Nandeesh M N',
-        username: 'nandeesh',
-        email: 'nandi@gmail.com',
-        password_hash: hash,
-        role: 'student',
-        department: 'Computer Science',
-        academic_year: 'Sophomore',
-        profile_picture_url: '',
-        is_verified: true,
-      };
-      users.push(user);
-    }
+    const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = result.rows[0];
 
     if (!user) {
       return res.status(400).json({ success: false, error: 'Invalid email or password credentials.' });
@@ -113,7 +95,6 @@ const login = async (req, res, next) => {
     }
 
     const { accessToken, refreshToken } = generateTokens(user);
-    user.refresh_token = refreshToken;
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
@@ -122,7 +103,8 @@ const login = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    const { password_hash: _, refresh_token: __, ...userResponse } = user;
+    // Return user without sensitive fields
+    const { password_hash: _, ...userResponse } = user;
 
     return res.status(200).json({
       success: true,
@@ -142,14 +124,14 @@ const refresh = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret');
-    const user = users.find(u => u.id === decoded.id);
+    const result = await db.query('SELECT id, email, username, role FROM users WHERE id = $1', [decoded.id]);
+    const user = result.rows[0];
 
-    if (!user || user.refresh_token !== refreshToken) {
+    if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid token or session expired.' });
     }
 
     const tokens = generateTokens(user);
-    user.refresh_token = tokens.refreshToken;
 
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
@@ -172,9 +154,31 @@ const logout = (req, res) => {
   return res.status(200).json({ success: true, message: 'Logged out successfully' });
 };
 
+const getMe = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+    const result = await db.query(
+      'SELECT id, full_name, username, email, role, department, academic_year, profile_image, bio, github_url, linkedin_url, is_verified, created_at FROM users WHERE id = $1',
+      [req.user.id]
+    );
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    return res.status(200).json({ success: true, user });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
   refresh,
   logout,
+  getMe,
 };
