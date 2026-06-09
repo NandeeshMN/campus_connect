@@ -98,25 +98,43 @@ const DashboardLayout = ({ children }) => {
         {/* Right: Icons + Avatar */}
         <div className="flex items-center gap-1 sm:gap-2">
           <ThemeToggle />
-          <button className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
+          <NavLink
+            to="/messages"
+            className={({ isActive }) =>
+              `p-2 rounded-lg transition-colors ${isActive ? 'text-brand-600 bg-brand-50 dark:text-brand-400 dark:bg-brand-950/30' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'}`
+            }
+            title="Messages"
+          >
             <Mail size={18} />
-          </button>
-          <button className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
+          </NavLink>
+          <NavLink
+            to="/notifications"
+            className={({ isActive }) =>
+              `relative p-2 rounded-lg transition-colors ${isActive ? 'text-brand-600 bg-brand-50 dark:text-brand-400 dark:bg-brand-950/30' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'}`
+            }
+            title="Notifications"
+          >
             <Bell size={18} />
             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900" />
-          </button>
-          <button className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
+          </NavLink>
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `p-2 rounded-lg transition-colors ${isActive ? 'text-brand-600 bg-brand-50 dark:text-brand-400 dark:bg-brand-950/30' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'}`
+            }
+            title="Settings"
+          >
             <Settings size={18} />
-          </button>
-          <button
-            onClick={() => navigate('/profile')}
+          </NavLink>
+          <NavLink
+            to="/profile"
             className="flex items-center gap-2 ml-1 pl-2 border-l border-slate-200 dark:border-slate-700 hover:opacity-80 transition-opacity"
             title="Go to Profile"
           >
             <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-brand-500 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
               {user?.full_name?.charAt(0) || 'U'}
             </div>
-          </button>
+          </NavLink>
         </div>
       </header>
 
