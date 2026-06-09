@@ -6,6 +6,7 @@ const morgan = require('morgan');
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 const { errorHandler, notFound, errorLogger } = require('./middleware/errorMiddleware');
 
 const app = express();
