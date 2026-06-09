@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const resourcesRoutes = require('./routes/resourcesRoutes');
 const { errorHandler, notFound, errorLogger } = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -35,6 +36,8 @@ if (process.env.NODE_ENV !== 'production') {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/resources', resourcesRoutes);
 
 // Base Route
 app.get('/', (req, res) => {

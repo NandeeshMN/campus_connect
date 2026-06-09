@@ -18,6 +18,7 @@ import EditProfilePage from './pages/Profile/EditProfilePage';
 import EventsPage from './pages/Events/EventsPage';
 import MessagesPage from './pages/Messages/MessagesPage';
 import SettingsPage from './pages/Settings/SettingsPage';
+import ResourcesPage from './pages/Resources/ResourcesPage';
 
 function App() {
   return (
@@ -37,11 +38,11 @@ function App() {
             <Route path="/profile/edit" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
             <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
 
             {/* Placeholder stubs for future pages */}
             <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-            <Route path="/resources" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
