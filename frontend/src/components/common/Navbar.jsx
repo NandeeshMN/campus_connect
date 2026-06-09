@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Menu, X, LogOut, User, Bell, Mail, Compass } from 'lucide-react';
+import { Menu, X, LogOut, User, Bell, Mail, Compass, Settings } from 'lucide-react';
 import Logo from './Logo';
 import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../../context/AuthContext';
@@ -53,16 +53,25 @@ const Navbar = () => {
                 </button>
                 
                 {/* Avatar / Username */}
-                <div className="flex items-center gap-2 border-l border-slate-200 pl-4 dark:border-slate-800">
+                <Link to="/profile" className="flex items-center gap-2 border-l border-slate-200 pl-4 dark:border-slate-800 hover:opacity-80 transition-opacity">
                   <div className="h-8 w-8 rounded-full bg-brand-100 text-brand-600 dark:bg-brand-900/50 dark:text-brand-400 flex items-center justify-center font-bold text-sm">
                     {user?.full_name?.charAt(0) || 'U'}
                   </div>
                   <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                     {user?.username}
                   </span>
+                </Link>
+                <div className="flex items-center gap-1 border-l border-slate-200 pl-4 dark:border-slate-800">
+                  <Link 
+                    to="/settings"
+                    className="p-1.5 text-slate-400 hover:text-brand-500 rounded-lg transition-colors"
+                    title="Settings"
+                  >
+                    <Settings size={16} />
+                  </Link>
                   <button 
                     onClick={logout} 
-                    className="p-1.5 ml-1 text-slate-400 hover:text-red-500 rounded-lg transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors"
                     title="Log out"
                   >
                     <LogOut size={16} />

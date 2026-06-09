@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { MapPin, Link2, Edit3, Share2, Camera, Heart, MessageCircle, Grid } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -69,9 +70,9 @@ const ProfilePage = () => {
 
             {/* Actions */}
             <div className="flex items-center gap-3 pb-4">
-              <button className="flex items-center gap-2 px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold shadow-md shadow-brand-500/20 transition-all active:scale-95">
+              <Link to="/profile/edit" className="flex items-center gap-2 px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold shadow-md shadow-brand-500/20 transition-all active:scale-95">
                 <Edit3 size={15} /> Edit Profile
-              </button>
+              </Link>
               <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                 <Share2 size={15} /> Share Profile
               </button>
