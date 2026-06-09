@@ -25,10 +25,8 @@ const Navbar = () => {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           
-          {/* Logo link */}
-          <Link to="/">
-            <Logo />
-          </Link>
+          {/* Logo - click detection is handled inside Logo.jsx */}
+          <Logo />
 
           {/* Navigation Links (Desktop) */}
           <div className="hidden md:flex items-center gap-8">

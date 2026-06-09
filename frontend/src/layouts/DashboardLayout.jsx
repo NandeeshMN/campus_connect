@@ -38,9 +38,7 @@ const DashboardLayout = ({ children }) => {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-4 py-5 border-b border-slate-100 dark:border-slate-800">
-        <Link to="/home" onClick={() => setSidebarOpen(false)}>
-          <Logo iconSize={20} />
-        </Link>
+        <Logo iconSize={20} />
         <p className="text-[10px] text-slate-400 mt-1 ml-10 font-semibold tracking-wider uppercase">Premium Collegiate Social</p>
       </div>
 

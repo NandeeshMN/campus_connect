@@ -8,6 +8,8 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const resourcesRoutes = require('./routes/resourcesRoutes');
+const eventsRoutes = require('./routes/eventsRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const { errorHandler, notFound, errorLogger } = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -38,6 +40,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/resources', resourcesRoutes);
+app.use('/api/events', eventsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Base Route
 app.get('/', (req, res) => {
