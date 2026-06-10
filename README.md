@@ -20,3 +20,50 @@ This project is organized as a monorepo-style structure:
 - **Messaging**: Real-time Socket.io chat with user status & message read receipts.
 - **Events**: Organization of college summits, meetings, and community gatherings.
 - **Resources**: Student-uploaded notes, papers, and collegiate tools.
+
+### 🛡️ Admin Dashboard
+
+A dedicated hidden admin panel for platform management.
+
+#### User Management
+
+- View Students
+- Search Students
+- Suspend Users
+- Delete Users
+- View User Activities
+
+#### Post Moderation
+
+- View Posts
+- Hide Posts
+- Delete Posts
+- Review Reported Content
+
+#### Resource Management
+
+- Upload Resources
+- Edit Resources
+- Delete Resources
+- Categorize Resources
+- Feature Resources
+
+#### Reports Management
+
+- User Reports
+- Post Reports
+- Resolve Reports
+
+#### Announcements
+
+- Create Announcements
+- Edit Announcements
+- Pin Announcements
+
+#### Analytics
+
+- Student Growth
+- Resource Usage
+- Platform Statistics
+
+---
