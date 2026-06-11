@@ -11,6 +11,7 @@ import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
 import LandingPage from './pages/Landing/LandingPage';
 import LoginPage from './pages/Login/LoginPage';
 import RegisterPage from './pages/Register/RegisterPage';
+import AuthPage from './pages/Auth/AuthPage';
 
 // Portal pages (protected)
 import HomePage from './pages/Home/HomePage';
@@ -51,7 +52,7 @@ function App() {
               <Route path="/admin/announcements" element={<AdminProtectedRoute><Announcements /></AdminProtectedRoute>} />
               
               {/* Public Routes */}
-              <Route path="/" element={<LandingPage />} />
+              <Route path="/" element={<AuthPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
 
