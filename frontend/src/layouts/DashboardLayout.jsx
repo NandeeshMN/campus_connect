@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   Home, Compass, MessageSquare, Bell, User, Calendar,
@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Logo from '../components/common/Logo';
 import ThemeToggle from '../components/common/ThemeToggle';
+import CreatePostModal from '../components/posts/CreatePostModal';
 
 const navItems = [
   { to: '/home',         icon: Home,         label: 'Home' },
@@ -25,6 +26,13 @@ const DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpenModal = () => setIsCreatePostOpen(true);
+    window.addEventListener('openCreatePostModal', handleOpenModal);
+    return () => window.removeEventListener('openCreatePostModal', handleOpenModal);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -61,7 +69,10 @@ const DashboardLayout = ({ children }) => {
 
       {/* Bottom Actions */}
       <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-        <button className="w-full flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm py-2.5 rounded-xl transition-all shadow-md shadow-brand-500/20 active:scale-95">
+        <button 
+          onClick={() => setIsCreatePostOpen(true)}
+          className="w-full flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm py-2.5 rounded-xl transition-all shadow-md shadow-brand-500/20 active:scale-95"
+        >
           <PlusCircle size={18} />
           Create Post
         </button>
@@ -175,29 +186,28 @@ const DashboardLayout = ({ children }) => {
               <LogOut size={24} />
             </div>
             <h3 className="text-xl font-bold text-center text-slate-900 dark:text-white mb-2">Ready to leave?</h3>
-            <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-6">
-              Are you sure you want to log out of your account? You will need to enter your credentials to access the portal again.
-            </p>
+            <p className="text-sm text-center text-slate-500 mb-6">Are you sure you want to log out of your account?</p>
             <div className="flex gap-3">
               <button 
                 onClick={() => setShowLogoutConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl font-bold text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
                 Cancel
               </button>
               <button 
-                onClick={() => {
-                  setShowLogoutConfirm(false);
-                  handleLogout();
-                }}
-                className="flex-1 py-2.5 rounded-xl font-bold text-sm bg-red-600 text-white hover:bg-red-500 transition-colors shadow-md shadow-red-500/20 active:scale-95"
+                onClick={handleLogout}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-sm"
               >
-                Log out
+                Log Out
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Global Create Post Modal */}
+      <CreatePostModal isOpen={isCreatePostOpen} onClose={() => setIsCreatePostOpen(false)} />
+
     </div>
   );
 };

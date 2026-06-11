@@ -10,6 +10,7 @@ const settingsRoutes = require('./routes/settingsRoutes');
 const resourcesRoutes = require('./routes/resourcesRoutes');
 const eventsRoutes = require('./routes/eventsRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const postsRoutes = require('./routes/postsRoutes');
 const { errorHandler, notFound, errorLogger } = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -27,8 +28,9 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Increase limits for base64 image uploads
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());
 
 if (process.env.NODE_ENV !== 'production') {
@@ -42,6 +44,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/resources', resourcesRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/posts', postsRoutes);
 
 // Base Route
 app.get('/', (req, res) => {
