@@ -1,23 +1,91 @@
-import React, { useState } from 'react';
-import { Search, Send, Image, Smile, Phone, Video, MoreVertical, CheckCheck, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Send, Image as ImageIcon, Smile, Phone, Video, MoreVertical, CheckCheck, MessageSquare } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
-
-const contacts = [
-  { id: 1, name: 'Sarah Mitchell', username: 'sarah_m', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=80&h=80', lastMsg: 'Are we still on for the study group?', time: '10:42 AM', unread: 2, online: true },
-  { id: 2, name: 'Marcus Chen', username: 'marcus_cs', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=80&h=80', lastMsg: 'Thanks for the referral!', time: 'Yesterday', unread: 0, online: false },
-  { id: 3, name: 'Project Group (CS301)', username: 'cs301_group', avatar: null, isGroup: true, lastMsg: 'Leo: I pushed the new commit.', time: 'Tuesday', unread: 0, online: false },
-];
-
-const messages = [
-  { id: 1, sender: 'Sarah Mitchell', text: 'Hey! Are we still on for the study group tonight?', time: '10:30 AM', isMe: false },
-  { id: 2, sender: 'Me', text: 'Yes! Let\'s meet at the library around 6 PM.', time: '10:35 AM', isMe: true },
-  { id: 3, sender: 'Sarah Mitchell', text: 'Sounds good. I\'ll bring the notes from last week.', time: '10:40 AM', isMe: false },
-  { id: 4, sender: 'Sarah Mitchell', text: 'See you then!', time: '10:42 AM', isMe: false },
-];
+import api from '../../services/api';
+import PostCard from '../../components/posts/PostCard';
+import toast from 'react-hot-toast';
 
 const MessagesPage = () => {
-  const [activeChat, setActiveChat] = useState(contacts[0]);
+  const [contacts, setContacts] = useState([]);
+  const [activeChat, setActiveChat] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [msgText, setMsgText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const chatBottomRef = useRef(null);
+
+  useEffect(() => {
+    fetchConversations();
+  }, []);
+
+  const fetchConversations = async () => {
+    try {
+      const { data } = await api.get('/messages/conversations');
+      if (data.success) {
+        setContacts(data.conversations.map(c => ({
+          id: c.id,
+          name: c.full_name,
+          username: c.username,
+          avatar: c.profile_image,
+          lastMsg: c.last_msg_type === 'shared_post' ? 'Shared a post' : c.last_msg,
+          time: c.last_msg_time ? new Date(c.last_msg_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          unread: 0,
+          online: false
+        })));
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!activeChat) return;
+    fetchMessages(activeChat.id);
+  }, [activeChat]);
+
+  const fetchMessages = async (convId) => {
+    try {
+      const { data } = await api.get(`/messages/${convId}`);
+      if (data.success) {
+        setMessages(data.messages);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!msgText.trim() || !activeChat) return;
+    const text = msgText;
+    setMsgText('');
+    
+    // optimistic
+    const tempMsg = {
+      id: Date.now(),
+      sender_id: 'me', // handled by isMe check below
+      message_text: text,
+      message_type: 'text',
+      created_at: new Date(),
+      isOptimistic: true
+    };
+    setMessages(p => [...p, tempMsg]);
+
+    try {
+      const { data } = await api.post(`/messages/${activeChat.id}`, { message_text: text });
+      if (data.success) {
+        setMessages(p => p.map(m => m.id === tempMsg.id ? data.message : m));
+        fetchConversations(); // update last_msg
+      }
+    } catch (err) {
+      toast.error('Failed to send message');
+      setMessages(p => p.filter(m => m.id !== tempMsg.id));
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -106,42 +174,60 @@ const MessagesPage = () => {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {messages.map(msg => (
-                <div key={msg.id} className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`flex gap-3 max-w-[70%] ${msg.isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                    {!msg.isMe && (
-                      <img src={activeChat.avatar} alt="avatar" className="w-8 h-8 rounded-full object-cover shrink-0 mt-1" />
-                    )}
-                    <div className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'}`}>
-                      <div 
-                        className={`px-4 py-2.5 rounded-2xl ${
-                          msg.isMe 
-                            ? 'bg-brand-600 text-white rounded-tr-sm' 
-                            : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-tl-sm shadow-sm'
-                        }`}
-                      >
-                        <p className="text-sm">{msg.text}</p>
-                      </div>
-                      <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-400">
-                        <span>{msg.time}</span>
-                        {msg.isMe && <CheckCheck size={12} className="text-blue-500" />}
+              {messages.map(msg => {
+                // Determine if sender is me. The current user id should technically be checked.
+                // For now, if we don't have full_name on the message, it's optimistic 'me', or we can check sender_id !== activeChat.other_user_id
+                // Since our query joins sender info, if it's the current user, we can know by ID. But simpler:
+                // Active chat represents the OTHER user. If sender_name matches other user, it's them.
+                const isMe = msg.isOptimistic || (msg.full_name !== activeChat.name);
+                
+                return (
+                  <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`flex gap-3 max-w-[70%] md:max-w-[60%] lg:max-w-[50%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                      {!isMe && (
+                        <img src={activeChat.avatar || 'https://via.placeholder.com/40'} alt="avatar" className="w-8 h-8 rounded-full object-cover shrink-0 mt-1" />
+                      )}
+                      <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} w-full`}>
+                        {msg.message_type === 'shared_post' && msg.shared_post_data ? (
+                          <div className="w-full text-left">
+                            <PostCard post={msg.shared_post_data} currentUserId="ignored" />
+                          </div>
+                        ) : msg.message_type === 'text' ? (
+                          <div 
+                            className={`px-4 py-2.5 rounded-2xl ${
+                              isMe 
+                                ? 'bg-brand-600 text-white rounded-tr-sm' 
+                                : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-tl-sm shadow-sm'
+                            }`}
+                          >
+                            <p className="text-sm">{msg.message_text}</p>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-slate-500">[Unsupported message type]</div>
+                        )}
+                        <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-400">
+                          <span>{msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Sending...'}</span>
+                          {isMe && <CheckCheck size={12} className="text-blue-500" />}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
+              <div ref={chatBottomRef} />
             </div>
 
             {/* Input Area */}
             <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shrink-0">
               <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 p-2 rounded-2xl border border-slate-200 dark:border-slate-700 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-400/20 transition-all">
                 <button className="p-2 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors shrink-0">
-                  <Image size={20} />
+                  <ImageIcon size={20} />
                 </button>
                 <input 
                   type="text" 
                   value={msgText}
                   onChange={e => setMsgText(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSend()}
                   placeholder="Type a message..." 
                   className="flex-1 bg-transparent border-none outline-none text-sm text-slate-700 dark:text-slate-200"
                 />
@@ -149,6 +235,7 @@ const MessagesPage = () => {
                   <Smile size={20} />
                 </button>
                 <button 
+                  onClick={handleSend}
                   disabled={!msgText.trim()}
                   className="p-2 bg-brand-600 text-white rounded-xl hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
                 >

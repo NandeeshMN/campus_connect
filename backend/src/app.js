@@ -11,6 +11,7 @@ const resourcesRoutes = require('./routes/resourcesRoutes');
 const eventsRoutes = require('./routes/eventsRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const postsRoutes = require('./routes/postsRoutes');
+const messagesRoutes = require('./routes/messagesRoutes');
 const { errorHandler, notFound, errorLogger } = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api/resources', resourcesRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/posts', postsRoutes);
+app.use('/api/messages', messagesRoutes);
 
 // Base Route
 app.get('/', (req, res) => {

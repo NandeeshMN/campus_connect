@@ -137,10 +137,32 @@ const deleteAccount = async (req, res, next) => {
   }
 };
 
+const searchUsers = async (req, res, next) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.json({ success: true, users: [] });
+    
+    const currentUserId = req.user.id;
+    const query = `%${q}%`;
+    const result = await db.query(
+      `SELECT id, full_name, username, profile_image 
+       FROM users 
+       WHERE (full_name ILIKE $1 OR username ILIKE $1)
+       AND id != $2 AND deleted_at IS NULL
+       LIMIT 10`,
+      [query, currentUserId]
+    );
+    res.json({ success: true, users: result.rows });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getMe,
   updateProfile,
   changeEmail,
   changePassword,
-  deleteAccount
+  deleteAccount,
+  searchUsers
 };

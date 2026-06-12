@@ -3,40 +3,36 @@ import { Link } from 'react-router-dom';
 import { MapPin, Link2, Edit3, Share2, Camera, Heart, MessageCircle, Grid } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 
 const skills = ['Python', 'UI Design', 'Research', 'TensorFlow', 'React'];
 
-const posts = [
-  {
-    id: 1,
-    content: 'Just finished documenting the architecture for our new AI-driven campus assistant. The modular design should allow for easy scaling across different departments. Exciting times ahead! 🚀',
-    image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=600&h=400',
-    likes: 124,
-    comments: 18,
-    time: '2 hours ago',
-  },
-  {
-    id: 2,
-    content: 'Just shared my latest UI kit for the CampusConnect design system in the resources tab! Built with 100% tokens and accessibility in mind. Check it out and let me know your thoughts.',
-    image: 'https://images.unsplash.com/photo-1606206873764-fd15e242c6d5?auto=format&fit=crop&q=80&w=600&h=400',
-    likes: 67,
-    comments: 5,
-    time: 'Yesterday',
-  },
-  {
-    id: 3,
-    content: 'Research paper submitted! Six months of work finally condensed into 12 pages. Huge thanks to the lab team 🔬',
-    image: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&q=80&w=600&h=400',
-    likes: 231,
-    comments: 29,
-    time: '3 days ago',
-  },
-];
+// Hardcoded posts removed. Posts will be fetched dynamically.
 
 const ProfilePage = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('Posts');
+  const [posts, setPosts] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
   const tabs = ['Posts', 'Projects', 'Events'];
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    const fetchUserPosts = async () => {
+      setLoadingPosts(true);
+      try {
+        const { data } = await api.get(`/posts/user/${user.id}`);
+        if (data.success) {
+          setPosts(data.posts || []);
+        }
+      } catch (err) {
+        console.error('Error fetching profile posts:', err);
+      } finally {
+        setLoadingPosts(false);
+      }
+    };
+    fetchUserPosts();
+  }, [user?.id]);
 
   return (
     <DashboardLayout>
@@ -167,36 +163,48 @@ const ProfilePage = () => {
 
             {/* Post Cards */}
             <div className="space-y-4">
-              {posts.map(post => (
-                <div key={post.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+              {loadingPosts ? (
+                <div className="text-center py-10 text-slate-500 text-sm">Loading posts...</div>
+              ) : posts.length === 0 ? (
+                <div className="text-center py-10 text-slate-500 text-sm">No posts yet.</div>
+              ) : (
+                posts.map(post => (
+                  <div key={post.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
 
-                  <div className="p-4 flex items-start gap-3">
-                    <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-brand-500 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                      {user?.full_name?.charAt(0) || 'N'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">{user?.full_name || 'Nandeesh M N'}</p>
-                        <p className="text-xs text-slate-400">{post.time}</p>
+                    <div className="p-4 flex items-start gap-3">
+                      {post.profile_image ? (
+                        <img src={post.profile_image} alt={post.full_name || ''} className="h-9 w-9 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800 shrink-0" />
+                      ) : (
+                        <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-brand-500 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                          {(post.full_name || 'U').charAt(0)}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">{post.full_name || 'Unknown'}</p>
+                          <p className="text-xs text-slate-400">
+                            {new Date(post.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">{post.caption}</p>
                       </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">{post.content}</p>
+                    </div>
+
+                    {post.image_url && (
+                      <img src={post.image_url} alt="Post" className="w-full max-h-96 object-cover bg-slate-100 dark:bg-slate-800" />
+                    )}
+
+                    <div className="px-4 py-3 flex items-center gap-5 border-t border-slate-100 dark:border-slate-800">
+                      <button className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${post.is_liked ? 'text-red-500' : 'text-slate-500 hover:text-red-400 dark:text-slate-400'}`}>
+                        <Heart size={15} fill={post.is_liked ? 'currentColor' : 'none'} /> {post.like_count || 0}
+                      </button>
+                      <button className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-brand-500 dark:text-slate-400 transition-colors">
+                        <MessageCircle size={15} /> {post.comment_count || 0}
+                      </button>
                     </div>
                   </div>
-
-                  {post.image && (
-                    <img src={post.image} alt="Post" className="w-full h-48 object-cover" />
-                  )}
-
-                  <div className="px-4 py-3 flex items-center gap-5 border-t border-slate-100 dark:border-slate-800">
-                    <button className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-red-400 transition-colors">
-                      <Heart size={15} /> {post.likes}
-                    </button>
-                    <button className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-brand-500 transition-colors">
-                      <MessageCircle size={15} /> {post.comments}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
           </div>

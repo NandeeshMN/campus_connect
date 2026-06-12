@@ -40,11 +40,12 @@ exports.createPost = async (req, res, next) => {
 
     // Fetch the inserted post with user details
     const postResult = await db.query(
-      `SELECT p.*, u.full_name, u.profile_image 
+      `SELECT p.*, u.full_name, u.username, u.profile_image,
+              EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $2) as is_liked
        FROM posts p
        JOIN users u ON p.user_id = u.id
        WHERE p.id = $1`,
-      [result.rows[0].id]
+      [result.rows[0].id, userId]
     );
 
     res.status(201).json({ success: true, post: postResult.rows[0] });
@@ -55,12 +56,15 @@ exports.createPost = async (req, res, next) => {
 
 exports.getPosts = async (req, res, next) => {
   try {
+    const userId = req.user.id;
     const result = await db.query(
-      `SELECT p.*, u.full_name, u.profile_image 
+      `SELECT p.*, u.full_name, u.username, u.profile_image,
+              EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $1) as is_liked
        FROM posts p
        JOIN users u ON p.user_id = u.id
        WHERE p.is_deleted = false AND p.is_hidden = false
-       ORDER BY p.created_at DESC`
+       ORDER BY p.created_at DESC`,
+      [userId]
     );
     res.json({ success: true, posts: result.rows });
   } catch (error) {
@@ -128,11 +132,12 @@ exports.updatePost = async (req, res, next) => {
     );
 
     const postResult = await db.query(
-      `SELECT p.*, u.full_name, u.profile_image 
+      `SELECT p.*, u.full_name, u.username, u.profile_image,
+              EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $2) as is_liked
        FROM posts p
        JOIN users u ON p.user_id = u.id
        WHERE p.id = $1`,
-      [id]
+      [id, userId]
     );
 
     res.json({ success: true, post: postResult.rows[0] });
@@ -155,9 +160,151 @@ exports.deletePost = async (req, res, next) => {
       return res.status(403).json({ success: false, error: 'Unauthorized to delete this post' });
     }
 
-    await db.query('UPDATE posts SET is_deleted = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
+    await db.query('DELETE FROM posts WHERE id = $1 AND user_id = $2', [id, userId]);
 
     res.json({ success: true, message: 'Post deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getPostsByUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.user.id;
+    const result = await db.query(
+      `SELECT p.*, u.full_name, u.username, u.profile_image,
+              EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $2) as is_liked
+       FROM posts p
+       JOIN users u ON p.user_id = u.id
+       WHERE p.user_id = $1 AND p.is_deleted = false AND p.is_hidden = false
+       ORDER BY p.created_at DESC`,
+      [userId, currentUserId]
+    );
+    res.json({ success: true, posts: result.rows });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.likePost = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Check if post exists
+    const postCheck = await db.query('SELECT id FROM posts WHERE id = $1 AND is_deleted = false', [id]);
+    if (postCheck.rows.length === 0) return res.status(404).json({ success: false, error: 'Post not found' });
+
+    // Check if already liked
+    const likeCheck = await db.query('SELECT id FROM likes WHERE post_id = $1 AND user_id = $2', [id, userId]);
+    
+    if (likeCheck.rows.length === 0) {
+      // Like
+      await db.query('INSERT INTO likes (post_id, user_id) VALUES ($1, $2)', [id, userId]);
+      await db.query('UPDATE posts SET like_count = COALESCE(like_count, 0) + 1 WHERE id = $1', [id]);
+      res.json({ success: true, is_liked: true });
+    } else {
+      // Unlike
+      await db.query('DELETE FROM likes WHERE post_id = $1 AND user_id = $2', [id, userId]);
+      await db.query('UPDATE posts SET like_count = GREATEST(COALESCE(like_count, 0) - 1, 0) WHERE id = $1', [id]);
+      res.json({ success: true, is_liked: false });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.commentOnPost = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const { comment_text } = req.body;
+
+    if (!comment_text || !comment_text.trim()) {
+      return res.status(400).json({ success: false, error: 'Comment text is required' });
+    }
+
+    const result = await db.query(
+      'INSERT INTO comments (post_id, user_id, comment_text, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP) RETURNING *',
+      [id, userId, comment_text.trim()]
+    );
+
+    await db.query('UPDATE posts SET comment_count = COALESCE(comment_count, 0) + 1 WHERE id = $1', [id]);
+
+    const commentWithUser = await db.query(
+      'SELECT c.*, u.full_name, u.username, u.profile_image FROM comments c JOIN users u ON c.user_id = u.id WHERE c.id = $1',
+      [result.rows[0].id]
+    );
+
+    res.json({ success: true, comment: commentWithUser.rows[0] });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteComment = async (req, res, next) => {
+  try {
+    const { commentId } = req.params;
+    const userId = req.user.id;
+
+    const commentCheck = await db.query('SELECT user_id, post_id FROM comments WHERE id = $1', [commentId]);
+    if (commentCheck.rows.length === 0) return res.status(404).json({ success: false, error: 'Comment not found' });
+    
+    if (commentCheck.rows[0].user_id !== userId) {
+      return res.status(403).json({ success: false, error: 'Unauthorized to delete this comment' });
+    }
+
+    const postId = commentCheck.rows[0].post_id;
+    await db.query('DELETE FROM comments WHERE id = $1 AND user_id = $2', [commentId, userId]);
+    await db.query('UPDATE posts SET comment_count = GREATEST(COALESCE(comment_count, 0) - 1, 0) WHERE id = $1', [postId]);
+
+    res.json({ success: true, message: 'Comment deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.sharePost = async (req, res, next) => {
+  try {
+    const { id } = req.params; // post id
+    const senderId = req.user.id;
+    const { receiverIds } = req.body;
+
+    if (!receiverIds || !Array.isArray(receiverIds) || receiverIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'Receivers are required' });
+    }
+
+    for (const receiverId of receiverIds) {
+      // Find or create conversation
+      // We assume simple 1-on-1 conversations for now, but you could implement proper multi-user logic
+      let convResult = await db.query(
+        `SELECT c.id 
+         FROM conversations c
+         JOIN conversation_participants cp1 ON c.id = cp1.conversation_id AND cp1.user_id = $1
+         JOIN conversation_participants cp2 ON c.id = cp2.conversation_id AND cp2.user_id = $2
+         GROUP BY c.id HAVING COUNT(cp1.user_id) = 1 AND COUNT(cp2.user_id) = 1`,
+        [senderId, receiverId]
+      );
+      
+      let conversationId;
+      if (convResult.rows.length > 0) {
+        conversationId = convResult.rows[0].id;
+      } else {
+        const newConv = await db.query('INSERT INTO conversations DEFAULT VALUES RETURNING id');
+        conversationId = newConv.rows[0].id;
+        await db.query('INSERT INTO conversation_participants (conversation_id, user_id) VALUES ($1, $2), ($1, $3)', [conversationId, senderId, receiverId]);
+      }
+
+      await db.query(
+        'INSERT INTO messages (conversation_id, sender_id, message_type, shared_post_id) VALUES ($1, $2, $3, $4)',
+        [conversationId, senderId, 'shared_post', id]
+      );
+      
+      await db.query('UPDATE posts SET share_count = COALESCE(share_count, 0) + 1 WHERE id = $1', [id]);
+    }
+
+    res.json({ success: true, message: 'Post shared successfully' });
   } catch (error) {
     next(error);
   }
