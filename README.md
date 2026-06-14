@@ -1,6 +1,7 @@
 # CampusConnect
 
 CampusConnect is a premium, production-ready collegiate social network tailored to enhance connections, academic success, and professional growth.
+Helps students to showcase there achievements.
 
 ## Architecture
 
