@@ -40,7 +40,9 @@ exports.createPost = async (req, res, next) => {
 
     // Fetch the inserted post with user details
     const postResult = await db.query(
-      `SELECT p.*, u.full_name, u.username, u.profile_image,
+      `SELECT p.*, p.id as post_id, 
+              u.id as author_id, u.full_name as author_name, u.username as author_username, u.profile_image as author_profile_picture,
+              u.full_name, u.username, u.profile_image,
               EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $2) as is_liked
        FROM posts p
        JOIN users u ON p.user_id = u.id
@@ -58,7 +60,9 @@ exports.getPosts = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const result = await db.query(
-      `SELECT p.*, u.full_name, u.username, u.profile_image,
+      `SELECT p.*, p.id as post_id,
+              u.id as author_id, u.full_name as author_name, u.username as author_username, u.profile_image as author_profile_picture,
+              u.full_name, u.username, u.profile_image,
               EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $1) as is_liked
        FROM posts p
        JOIN users u ON p.user_id = u.id
@@ -76,7 +80,9 @@ exports.getPostById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await db.query(
-      `SELECT p.*, u.full_name, u.profile_image 
+      `SELECT p.*, p.id as post_id,
+              u.id as author_id, u.full_name as author_name, u.username as author_username, u.profile_image as author_profile_picture,
+              u.full_name, u.profile_image 
        FROM posts p
        JOIN users u ON p.user_id = u.id
        WHERE p.id = $1 AND p.is_deleted = false`,
@@ -132,7 +138,9 @@ exports.updatePost = async (req, res, next) => {
     );
 
     const postResult = await db.query(
-      `SELECT p.*, u.full_name, u.username, u.profile_image,
+      `SELECT p.*, p.id as post_id,
+              u.id as author_id, u.full_name as author_name, u.username as author_username, u.profile_image as author_profile_picture,
+              u.full_name, u.username, u.profile_image,
               EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $2) as is_liked
        FROM posts p
        JOIN users u ON p.user_id = u.id
@@ -173,7 +181,9 @@ exports.getPostsByUser = async (req, res, next) => {
     const { userId } = req.params;
     const currentUserId = req.user.id;
     const result = await db.query(
-      `SELECT p.*, u.full_name, u.username, u.profile_image,
+      `SELECT p.*, p.id as post_id,
+              u.id as author_id, u.full_name as author_name, u.username as author_username, u.profile_image as author_profile_picture,
+              u.full_name, u.username, u.profile_image,
               EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $2) as is_liked
        FROM posts p
        JOIN users u ON p.user_id = u.id
@@ -309,3 +319,21 @@ exports.sharePost = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.getComments = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await db.query(
+      `SELECT c.*, u.full_name, u.username, u.profile_image 
+       FROM comments c
+       JOIN users u ON c.user_id = u.id
+       WHERE c.post_id = $1
+       ORDER BY c.created_at ASC`,
+      [id]
+    );
+    res.json({ success: true, comments: result.rows });
+  } catch (error) {
+    next(error);
+  }
+};
+

@@ -22,6 +22,7 @@ import EventsPage from './pages/Events/EventsPage';
 import MessagesPage from './pages/Messages/MessagesPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import ResourcesPage from './pages/Resources/ResourcesPage';
+import NotificationsPage from './pages/Notifications/NotificationsPage';
 
 // Admin Pages
 import AdminLogin from './pages/Admin/Login';
@@ -60,6 +61,7 @@ function App() {
               <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
               <Route path="/explore" element={<ProtectedRoute><ExplorePage /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/profile/:id" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/profile/edit" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
               <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
@@ -67,7 +69,8 @@ function App() {
 
               {/* Placeholder stubs for future pages */}
               <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
-              <Route path="/notifications" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+              <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />

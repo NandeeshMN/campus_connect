@@ -12,6 +12,8 @@ const eventsRoutes = require('./routes/eventsRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const postsRoutes = require('./routes/postsRoutes');
 const messagesRoutes = require('./routes/messagesRoutes');
+const followRoutes = require('./routes/followRoutes');
+const notificationsRoutes = require('./routes/notificationsRoutes');
 const { errorHandler, notFound, errorLogger } = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -47,6 +49,9 @@ app.use('/api/events', eventsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/posts', postsRoutes);
 app.use('/api/messages', messagesRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api', followRoutes);
+
 
 // Base Route
 app.get('/', (req, res) => {

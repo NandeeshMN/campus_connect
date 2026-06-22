@@ -36,7 +36,9 @@ exports.getMessages = async (req, res, next) => {
       `SELECT m.*, u.full_name, u.profile_image,
         CASE WHEN m.message_type = 'shared_post' THEN (
           SELECT row_to_json(p_data) FROM (
-            SELECT p.*, pu.full_name, pu.username, pu.profile_image,
+            SELECT p.*, p.id as post_id,
+                   pu.id as author_id, pu.full_name as author_name, pu.username as author_username, pu.profile_image as author_profile_picture,
+                   pu.full_name, pu.username, pu.profile_image,
                    EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $2) as is_liked
             FROM posts p
             JOIN users pu ON p.user_id = pu.id

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   Home, Compass, MessageSquare, Bell, User, Calendar,
@@ -10,6 +10,8 @@ import { useTheme } from '../context/ThemeContext';
 import Logo from '../components/common/Logo';
 import ThemeToggle from '../components/common/ThemeToggle';
 import CreatePostModal from '../components/posts/CreatePostModal';
+import api from '../services/api';
+
 
 const navItems = [
   { to: '/home',         icon: Home,         label: 'Home' },
@@ -21,6 +23,21 @@ const navItems = [
   { to: '/profile',      icon: User,         label: 'Profile' },
 ];
 
+const formatRelativeTime = (dateString) => {
+  if (!dateString) return '';
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
+};
+
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -28,10 +45,60 @@ const DashboardLayout = ({ children }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
 
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [dropdownNotifications, setDropdownNotifications] = useState([]);
+  const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const { data } = await api.get('/notifications/unread-count');
+      if (data.success) {
+        setUnreadCount(data.count);
+      }
+    } catch (err) {
+      console.error('Error fetching unread notifications count:', err);
+    }
+  };
+
+  const fetchDropdownNotifications = async () => {
+    try {
+      const { data } = await api.get('/notifications');
+      if (data.success) {
+        setDropdownNotifications(data.notifications.slice(0, 5) || []);
+      }
+    } catch (err) {
+      console.error('Error fetching dropdown notifications:', err);
+    }
+  };
+
   useEffect(() => {
     const handleOpenModal = () => setIsCreatePostOpen(true);
     window.addEventListener('openCreatePostModal', handleOpenModal);
     return () => window.removeEventListener('openCreatePostModal', handleOpenModal);
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  useEffect(() => {
+    if (showNotificationDropdown) {
+      fetchDropdownNotifications();
+    }
+  }, [showNotificationDropdown]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowNotificationDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleLogout = () => {
@@ -41,6 +108,7 @@ const DashboardLayout = ({ children }) => {
 
   const activeClass = 'bg-brand-50 text-brand-600 font-bold dark:bg-brand-950/40 dark:text-brand-400';
   const inactiveClass = 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60';
+
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -87,6 +155,15 @@ const DashboardLayout = ({ children }) => {
     </div>
   );
 
+  const handleBellClick = (e) => {
+    if (window.innerWidth < 768) {
+      navigate('/notifications');
+    } else {
+      e.preventDefault();
+      setShowNotificationDropdown(prev => !prev);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col transition-colors duration-300">
 
@@ -116,18 +193,89 @@ const DashboardLayout = ({ children }) => {
           >
             <Mail size={18} />
           </NavLink>
-          <NavLink
-            to="/notifications"
-            className={({ isActive }) =>
-              `relative p-2 rounded-lg transition-colors ${isActive ? 'text-brand-600 bg-brand-50 dark:text-brand-400 dark:bg-brand-950/30' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'}`
-            }
-            title="Notifications"
-          >
-            <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900" />
-          </NavLink>
+          
+          {/* Notifications Bell Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={handleBellClick}
+              className={`relative p-2 rounded-lg transition-colors ${showNotificationDropdown ? 'text-brand-600 bg-brand-50 dark:text-brand-400 dark:bg-brand-950/30' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'}`}
+              title="Notifications"
+            >
+              <Bell size={18} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900" />
+              )}
+            </button>
+            
+            {showNotificationDropdown && (
+              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden">
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">Recent Notifications</h4>
+                  <button 
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await api.put('/notifications/mark-read');
+                      setUnreadCount(0);
+                      setDropdownNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+                    }}
+                    className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+                  >
+                    Mark all read
+                  </button>
+                </div>
+                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                  {dropdownNotifications.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-slate-400">No new notifications</div>
+                  ) : (
+                    dropdownNotifications.map(notif => (
+                      <div 
+                        key={notif.id}
+                        onClick={async () => {
+                          if (!notif.is_read) {
+                            await api.put(`/notifications/${notif.id}/read`);
+                            setUnreadCount(prev => Math.max(0, prev - 1));
+                          }
+                          setShowNotificationDropdown(false);
+                          navigate(`/profile/${notif.actor_id}`);
+                        }}
+                        className={`p-3 text-left flex items-start gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors ${!notif.is_read ? 'bg-brand-50/20 dark:bg-brand-950/10' : ''}`}
+                      >
+                        {notif.actor_image ? (
+                          <img src={notif.actor_image} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-500 to-indigo-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                            {(notif.actor_name || 'U').charAt(0)}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-slate-700 dark:text-slate-300 leading-tight">
+                            <span className="font-bold text-slate-900 dark:text-white">{notif.actor_name}</span> {notif.message.replace(notif.actor_name, '').trim()}
+                          </p>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">
+                            {formatRelativeTime(notif.created_at)}
+                          </span>
+                        </div>
+                        {!notif.is_read && (
+                          <span className="w-1.5 h-1.5 bg-brand-600 rounded-full shrink-0 mt-1.5" />
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+                <Link 
+                  to="/notifications" 
+                  onClick={() => setShowNotificationDropdown(false)}
+                  className="block text-center py-2.5 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 transition-colors"
+                >
+                  View all notifications
+                </Link>
+              </div>
+            )}
+          </div>
+
           <NavLink
             to="/settings"
+
             className={({ isActive }) =>
               `p-2 rounded-lg transition-colors ${isActive ? 'text-brand-600 bg-brand-50 dark:text-brand-400 dark:bg-brand-950/30' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'}`
             }

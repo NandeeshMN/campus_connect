@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { NavLink, Link } from 'react-router-dom';
 import { Search, Send, Image as ImageIcon, Smile, Phone, Video, MoreVertical, CheckCheck, MessageSquare } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import api from '../../services/api';
@@ -23,6 +24,7 @@ const MessagesPage = () => {
       if (data.success) {
         setContacts(data.conversations.map(c => ({
           id: c.id,
+          other_user_id: c.other_user_id,
           name: c.full_name,
           username: c.username,
           avatar: c.profile_image,
@@ -150,7 +152,7 @@ const MessagesPage = () => {
           <div className="flex-1 flex flex-col h-full bg-slate-50/50 dark:bg-slate-900/50">
             {/* Chat Header */}
             <div className="h-16 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-3">
+              <Link to={`/profile/${activeChat.other_user_id}`} className="flex items-center gap-3 hover:opacity-85 transition-opacity">
                 {activeChat.avatar ? (
                   <img src={activeChat.avatar} alt={activeChat.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
                 ) : (
@@ -164,7 +166,7 @@ const MessagesPage = () => {
                     {activeChat.online ? 'Online now' : 'Offline'}
                   </p>
                 </div>
-              </div>
+              </Link>
               <div className="flex items-center gap-4 text-slate-400">
                 <button className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors"><Phone size={18} /></button>
                 <button className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors"><Video size={18} /></button>
@@ -185,7 +187,9 @@ const MessagesPage = () => {
                   <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                     <div className={`flex gap-3 max-w-[70%] md:max-w-[60%] lg:max-w-[50%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                       {!isMe && (
-                        <img src={activeChat.avatar || 'https://via.placeholder.com/40'} alt="avatar" className="w-8 h-8 rounded-full object-cover shrink-0 mt-1" />
+                        <Link to={`/profile/${activeChat.other_user_id}`}>
+                          <img src={activeChat.avatar || 'https://via.placeholder.com/40'} alt="avatar" className="w-8 h-8 rounded-full object-cover shrink-0 mt-1 hover:opacity-85 transition-opacity" />
+                        </Link>
                       )}
                       <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} w-full`}>
                         {msg.message_type === 'shared_post' && msg.shared_post_data ? (

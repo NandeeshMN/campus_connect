@@ -158,11 +158,99 @@ const searchUsers = async (req, res, next) => {
   }
 };
 
+const getUserProfile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await db.query(
+      'SELECT id, full_name, username, email, role, department, academic_year, profile_image, cover_image, bio, github_url, linkedin_url, is_private, is_verified, created_at FROM users WHERE id = $1 AND deleted_at IS NULL',
+      [id]
+    );
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    return res.status(200).json({ success: true, user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const visitUserProfile = async (req, res, next) => {
+  try {
+    const viewerId = req.user.id;
+    const profileOwnerId = parseInt(req.params.id);
+
+    if (viewerId === profileOwnerId) {
+      return res.json({ success: true, message: 'Self visit not logged.' });
+    }
+
+    // Check if visit logged within last 1 hour
+    const checkRes = await db.query(
+      "SELECT 1 FROM profile_visits WHERE viewer_id = $1 AND profile_owner_id = $2 AND visited_at > NOW() - INTERVAL '1 hour'",
+      [viewerId, profileOwnerId]
+    );
+
+    if (checkRes.rows.length === 0) {
+      await db.query(
+        'INSERT INTO profile_visits (viewer_id, profile_owner_id) VALUES ($1, $2)',
+        [viewerId, profileOwnerId]
+      );
+    }
+
+    res.json({ success: true, message: 'Profile visit logged successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getSuggestedUsers = async (req, res, next) => {
+  try {
+    const currentUserId = req.user.id;
+
+    // Fetch current user details
+    const userRes = await db.query('SELECT department, academic_year FROM users WHERE id = $1', [currentUserId]);
+    const user = userRes.rows[0];
+    const dept = user ? user.department : null;
+    const acadYear = user ? user.academic_year : null;
+
+    // SQL query to calculate score:
+    // +2 for same department, +1 for same academic year, +3 for each mutual connection
+    const query = `
+      SELECT u.id, u.full_name, u.username, u.profile_image, u.department, u.academic_year,
+             (
+               CASE WHEN u.department = $2 THEN 2 ELSE 0 END +
+               CASE WHEN u.academic_year = $3 THEN 1 ELSE 0 END +
+               (SELECT COUNT(*) 
+                FROM followers f1
+                JOIN followers f2 ON f1.following_id = f2.follower_id
+                WHERE f1.follower_id = $1 AND f2.following_id = u.id) * 3
+             ) AS score
+      FROM users u
+      WHERE u.id != $1
+        AND u.deleted_at IS NULL
+        AND u.id NOT IN (SELECT following_id FROM followers WHERE follower_id = $1)
+      ORDER BY score DESC, u.created_at DESC
+      LIMIT 5
+    `;
+
+    const result = await db.query(query, [currentUserId, dept, acadYear]);
+    res.json({ success: true, users: result.rows });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getMe,
   updateProfile,
   changeEmail,
   changePassword,
   deleteAccount,
-  searchUsers
+  searchUsers,
+  getUserProfile,
+  visitUserProfile,
+  getSuggestedUsers
 };
+

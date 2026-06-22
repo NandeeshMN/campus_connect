@@ -10,7 +10,8 @@ const {
   likePost,
   commentOnPost,
   deleteComment,
-  sharePost
+  sharePost,
+  getComments
 } = require('../controllers/postsController');
 const { authenticate } = require('../middleware/authMiddleware');
 
@@ -41,7 +42,11 @@ router.post('/:id/comment', authenticate, commentOnPost);
 // Delete a comment
 router.delete('/comment/:commentId', authenticate, deleteComment);
 
+// Get comments for a post
+router.get('/:id/comments', authenticate, getComments);
+
 // Share a post
 router.post('/:id/share', authenticate, sharePost);
+
 
 module.exports = router;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Heart, MessageCircle, Share2, Bookmark, MoreHorizontal,
   Image as ImageIcon, Smile, TrendingUp, X, Trash2, Edit2, Globe, Users
@@ -17,14 +18,6 @@ const trendingHashtags = [
   { tag: '#CampusEats',    posts: '320 posts today'  },
 ];
 
-const suggestedStudents = [
-  { id: 1, name: 'Priya Sharma', major: 'Computer Science',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=80&h=80' },
-  { id: 2, name: 'Jordan Lee',   major: 'Data Science',
-    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=80&h=80' },
-  { id: 3, name: 'Linda Yao',    major: 'UX Design',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=80&h=80' },
-];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const fileToDataUri = (file) => new Promise((resolve, reject) => {
@@ -69,6 +62,7 @@ const HomePage = () => {
   const [posts,       setPosts]       = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [feedError,   setFeedError]   = useState(null);
+  const [suggestedStudents, setSuggestedStudents] = useState([]);
 
   // Edit state
   const [editingPost, setEditingPost] = useState(null);
@@ -78,9 +72,34 @@ const HomePage = () => {
   const [deletingPost, setDeletingPost] = useState(null);
   const [isDeleting,   setIsDeleting]   = useState(false);
 
+  const fetchSuggestedStudents = async () => {
+    try {
+      const { data } = await api.get('/users/suggested');
+      if (data.success) {
+        setSuggestedStudents(data.users || []);
+      }
+    } catch (err) {
+      console.error('Error fetching suggested students:', err);
+    }
+  };
+
+  const handleFollowSuggestion = async (studentId) => {
+    try {
+      const { data } = await api.post(`/follow/${studentId}`);
+      if (data.success) {
+        toast.success('Followed successfully!');
+        setSuggestedStudents(prev => prev.filter(s => s.id !== studentId));
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to follow student.');
+    }
+  };
+
   // ── Effects ────────────────────────────────────────────────────────────────
   useEffect(() => {
     fetchPosts();
+    fetchSuggestedStudents();
 
     // Listen for newly created posts from the global modal
     const onNewPost = (e) => {
@@ -248,22 +267,39 @@ const HomePage = () => {
             {/* Suggested Students */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
               <h3 className="font-bold text-slate-900 dark:text-white mb-4">Suggested Students</h3>
-              <div className="space-y-3">
-                {suggestedStudents.map(student => (
-                  <div key={student.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <img src={student.avatar} alt={student.name} className="h-9 w-9 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800" />
-                      <div>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{student.name}</p>
-                        <p className="text-xs text-slate-400">{student.major}</p>
+              {suggestedStudents.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-2">No new suggestions</p>
+              ) : (
+                <div className="space-y-3">
+                  {suggestedStudents.map(student => (
+                    <div key={student.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Link to={`/profile/${student.id}`}>
+                          {student.profile_image ? (
+                            <img src={student.profile_image} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800" />
+                          ) : (
+                            <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-brand-500 to-indigo-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                              {(student.full_name || 'U').charAt(0)}
+                            </div>
+                          )}
+                        </Link>
+                        <div>
+                          <Link to={`/profile/${student.id}`} className="text-sm font-bold text-slate-900 dark:text-white leading-tight hover:underline block">
+                            {student.full_name}
+                          </Link>
+                          <p className="text-xs text-slate-400 truncate max-w-[120px]">{student.department || 'Student'}</p>
+                        </div>
                       </div>
+                      <button 
+                        onClick={() => handleFollowSuggestion(student.id)}
+                        className="text-xs font-bold text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-800 hover:bg-brand-50 dark:hover:bg-brand-950/30 px-3 py-1 rounded-lg transition-colors"
+                      >
+                        Follow
+                      </button>
                     </div>
-                    <button className="text-xs font-bold text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-800 hover:bg-brand-50 dark:hover:bg-brand-950/30 px-3 py-1 rounded-lg transition-colors">
-                      Follow
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
           </div>
