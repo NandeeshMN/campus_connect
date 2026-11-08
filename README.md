@@ -3,18 +3,7 @@
 CampusConnect is a social network tailored to enhance connections, academic success, and professional growth.
 Helps students to showcase there achievements,share posts communicate with other members.
 
-## Architecture
 
-This project is organized as a monorepo-style structure:
-- **`frontend/`**: Vite + React 19 + Tailwind CSS single page application (SPA).
-- **`backend/`**: Node.js + Express.js backend with PostgreSQL, Socket.IO, and Cloudinary integrations.
-- **`docs/`**: API specifications and database relational schemas.
----
-## Quick Start
-
-### Prerequisites
-- Node.js (v18 or higher)
-- PostgreSQL database
 ---
 ## Future Modules
 - **Feed**: Main community feed supporting posts, likes, comments, and shares.
